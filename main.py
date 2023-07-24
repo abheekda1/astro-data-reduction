@@ -10,6 +10,9 @@ MASTER_DIR = "master"
 DARKSFORFLATS_DIR = "darks_for_flats"
 REDUCED_DIR = "reduced"
 
+def list_files(dir) -> list[str]:
+    return [f"{dir}/{f}" for f in os.listdir(dir) if not f.split('/')[-1].startswith('.')]
+
 def gen_median(files) -> np.ndarray:
     darks = list(map(lambda x: fits.getdata(x), files))
     mdark = np.median(darks, axis=0)
@@ -30,7 +33,7 @@ def main() -> int:
     for folder in [DARKS_DIR, LIGHTS_DIR, FLATS_DIR, MASTER_DIR, REDUCED_DIR]:
         os.makedirs(folder, exist_ok=True)
 
-    dark_files = [f"{DARKS_DIR}/{f}" for f in os.listdir(DARKS_DIR)]
+    dark_files = list_files(DARKS_DIR)
 
     if len(dark_files) == 0:
         return 1
@@ -39,14 +42,15 @@ def main() -> int:
     fits.writeto(f"{MASTER_DIR}/mdark.fits", mdark, overwrite=True)
 
     
-    dark_for_flat_files = [f"{DARKSFORFLATS_DIR}/{f}" for f in os.listdir(DARKSFORFLATS_DIR)]
-    flat_files = [f"{FLATS_DIR}/{f}" for f in os.listdir(FLATS_DIR)]
+    dark_for_flat_files = list_files(DARKSFORFLATS_DIR)
+    flat_files = list_files(FLATS_DIR)
 
     unnorm_mflat, avg_flat_val = gen_mflat(dark_for_flat_files, flat_files)
     fits.writeto(f"{MASTER_DIR}/mflat.fits", unnorm_mflat, overwrite=True)
 
     norm_mflat = unnorm_mflat / avg_flat_val
-    for file in [f"{LIGHTS_DIR}/{f}" for f in os.listdir(LIGHTS_DIR)]:
+    light_files = list_files(LIGHTS_DIR)
+    for file in light_files:
         fdata, _ = fits.getdata(file, header=True)
         # plt.imshow(fdata, cmap='gray', vmin=1850, vmax=1950)
         # plt.colorbar()
